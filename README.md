@@ -11,7 +11,9 @@ Epson GT-8200), but device addresses are never hard-coded.
 ## Features
 
 - Interactive, reusable scanning session with photo, negative, and quit actions.
+- French user interface with live phase, elapsed-time, and SANE percentage reporting.
 - Runtime SANE device discovery and capability inspection.
+- Per-scan resolution and bit-depth selection from backend-supported values.
 - Separate defaults for reflective photos and the Transparency Unit.
 - Multiple-photo detection with conservative cropping and deskewing.
 - Automatic negative-frame detection for horizontal and vertical strips.
@@ -106,8 +108,10 @@ is conservatively padded, deskewed, and exported separately.
 Connect and install the Transparency Unit, place the strip in its holder, and keep the active
 transparency area clear. The default profile requests color at 1600 DPI and 16 bits per channel.
 Physical film edges are detected first, then each frame is inverted independently in floating
-point with per-channel percentile normalization. This prevents the holder from skewing color
-levels. The final conversion back to integer samples happens only on export.
+point using optical density. The orange film base is sampled at each inter-frame separator and
+interpolated along the strip before a conservative neutral-tone correction. This prevents the
+holder and film-base drift from skewing color levels. The final conversion back to integer
+samples happens only on export.
 
 Automatic processing is intentionally conservative. If detection fails, the raw TIFF remains in
 the output directory's `.raw` folder so that a slow scan is never lost.
@@ -121,7 +125,7 @@ precedence over this file. The standard defaults are:
 | Setting | Photos | Negatives |
 | --- | ---: | ---: |
 | Source | Flatbed | Transparency Unit |
-| Resolution | 600 DPI | 1600 DPI |
+| Resolution | 1600 DPI | 1600 DPI |
 | Depth | 16 bit | 16 bit |
 | Color correction | Built-in CCT | None |
 
