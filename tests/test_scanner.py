@@ -4,6 +4,7 @@ from scanner_utils.config import DEFAULT_CONFIG
 from scanner_utils.scanner import (
     ScannerCapabilities,
     ScannerDevice,
+    _progress_from_stderr,
     build_scan_arguments,
     parse_devices,
 )
@@ -34,3 +35,29 @@ def test_build_arguments_omits_options_not_advertised() -> None:
     assert "Transparency Unit" in arguments
     assert "--depth" not in arguments
     assert "--format=tiff" in arguments
+    assert "--progress" in arguments
+
+
+def test_capabilities_expose_supported_resolution_and_depth_values() -> None:
+    output = """
+    --depth 8|12|14|16bit [inactive]
+    --resolution 50|300|600|1600|3200dpi [25]
+    """
+    capabilities = ScannerCapabilities(output, frozenset({"--depth", "--resolution"}))
+
+    assert capabilities.numeric_values("--depth") == (8, 12, 14, 16)
+    assert capabilities.numeric_values("--resolution") == (50, 300, 600, 1600, 3200)
+
+
+def test_scanimage_progress_is_parsed_in_french_phase() -> None:
+    phase, percentage = _progress_from_stderr(b"Progress: 42.5%\r")
+
+    assert phase == "Numérisation"
+    assert percentage == 42.5
+
+
+def test_completed_transfer_reports_file_finalization() -> None:
+    phase, percentage = _progress_from_stderr(b"Progress: 100.0%\r")
+
+    assert phase == "Finalisation du fichier"
+    assert percentage == 100.0

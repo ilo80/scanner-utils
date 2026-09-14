@@ -4,7 +4,7 @@ output_format = "tiff"
 keep_raw_scans = false
 
 [photo]
-resolution = 600
+resolution = 1600
 depth = 16
 source = "Flatbed"
 color_correction = "Built in CCT profile"

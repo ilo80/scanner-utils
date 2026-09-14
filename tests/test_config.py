@@ -1,6 +1,13 @@
 from pathlib import Path
 
-from scanner_utils.config import load_config
+from scanner_utils.config import DEFAULT_CONFIG, load_config
+
+
+def test_default_resolution_and_depth_are_1600_dpi_and_16_bit() -> None:
+    assert DEFAULT_CONFIG.photo.resolution == 1600
+    assert DEFAULT_CONFIG.negative.resolution == 1600
+    assert DEFAULT_CONFIG.photo.depth == 16
+    assert DEFAULT_CONFIG.negative.depth == 16
 
 
 def test_load_config_uses_profile_overrides(tmp_path: Path) -> None:

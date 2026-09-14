@@ -32,7 +32,7 @@ DEFAULT_CONFIG = AppConfig(
     output_format="tiff",
     keep_raw_scans=False,
     photo=ScanProfile(
-        resolution=600,
+        resolution=1600,
         depth=16,
         source="Flatbed",
         color_correction="Built in CCT profile",
@@ -62,19 +62,21 @@ def load_config(path: Path | None = None) -> AppConfig:
     config_path = path or Path("~/.config/scanner-utils/config.toml").expanduser()
     if not config_path.exists():
         if explicit:
-            raise ScannerUtilsError(f"Configuration file does not exist: {config_path}")
+            raise ScannerUtilsError(f"Le fichier de configuration n'existe pas : {config_path}")
         return DEFAULT_CONFIG
 
     try:
         with config_path.open("rb") as config_file:
             data = tomllib.load(config_file)
     except (OSError, tomllib.TOMLDecodeError) as exc:
-        raise ScannerUtilsError(f"Cannot read configuration {config_path}: {exc}") from exc
+        raise ScannerUtilsError(
+            f"Impossible de lire la configuration {config_path} : {exc}"
+        ) from exc
 
     general = data.get("general", {})
     output_format = str(general.get("output_format", DEFAULT_CONFIG.output_format)).lower()
     if output_format not in {"tiff", "png"}:
-        raise ScannerUtilsError("general.output_format must be 'tiff' or 'png'")
+        raise ScannerUtilsError("general.output_format doit valoir 'tiff' ou 'png'")
 
     return AppConfig(
         output_directory=Path(

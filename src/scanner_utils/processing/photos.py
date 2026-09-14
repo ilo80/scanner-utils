@@ -14,11 +14,11 @@ def process_photo_scan(raw_path: Path, output_paths: list[Path]) -> list[Path]:
     regions = detect_rectangular_regions(image)
     if not regions:
         raise ProcessingError(
-            "No photograph was detected. The raw scan was kept; try increasing contrast "
-            "between the photos and the scanner background."
+            "Aucune photo n'a été détectée. Le scan brut a été conservé ; essayez d'augmenter "
+            "le contraste entre les photos et le fond du scanner."
         )
     if len(output_paths) < len(regions):
-        raise ProcessingError("Not enough output paths were reserved for detected photographs.")
+        raise ProcessingError("Le nombre de chemins de sortie réservés est insuffisant.")
 
     written: list[Path] = []
     for region, output_path in zip(regions, output_paths, strict=False):
