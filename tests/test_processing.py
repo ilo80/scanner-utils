@@ -7,6 +7,7 @@ import tifffile
 from scanner_utils.processing.detection import detect_rectangular_regions, perspective_crop
 from scanner_utils.processing.negatives import (
     _negative_edge_bounds,
+    _regular_edge_chain,
     detect_frame_bounds,
     negative_to_positive,
 )
@@ -81,3 +82,17 @@ def test_detects_vertical_frames_from_raw_film_edges() -> None:
     assert len(bounds) == 4
     assert all(right - left > 130 for left, _, right, _ in bounds)
     assert all(bottom - top > 160 for _, top, _, bottom in bounds)
+
+
+def test_weak_separator_is_kept_in_regular_frame_chain() -> None:
+    profile = np.zeros(500, dtype=np.float32)
+    profile[[20, 120, 220, 320, 420]] = [1.0, 0.8, 0.05, 0.7, 0.9]
+
+    assert _regular_edge_chain(profile, cross_size=70) == [20, 120, 220, 320, 420]
+
+
+def test_missing_separator_is_not_bridged() -> None:
+    profile = np.zeros(500, dtype=np.float32)
+    profile[[20, 120, 220, 420]] = [1.0, 0.8, 0.7, 0.9]
+
+    assert _regular_edge_chain(profile, cross_size=70) == [20, 120, 220]
