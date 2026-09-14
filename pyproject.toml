@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "scanner-utils"
+version = "0.1.0"
+description = "Interactive photo and film scanning with SANE"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [{ name = "Scanner Utils contributors" }]
+dependencies = [
+    "numpy>=2.0,<3",
+    "opencv-python-headless>=4.10,<5",
+    "tifffile>=2024.8",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3,<10",
+    "pytest-cov>=6,<8",
+    "ruff>=0.9,<1",
+]
+
+[project.scripts]
+scanner-utils = "scanner_utils.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/scanner_utils"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
