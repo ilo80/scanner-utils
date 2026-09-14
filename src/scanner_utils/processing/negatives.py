@@ -12,6 +12,7 @@ import numpy as np
 
 from scanner_utils.errors import ProcessingError
 from scanner_utils.processing.io import read_image, write_image
+from scanner_utils.processing.negative_trimming import _trim_35mm_frame
 
 Bounds = tuple[int, int, int, int]
 
@@ -370,6 +371,7 @@ def process_negative_scan(raw_path: Path, output_paths: list[Path]) -> list[Path
     calibration = _calibrate_film(raw, bounds)
     written: list[Path] = []
     for frame_bounds, output_path in zip(bounds, output_paths, strict=False):
-        write_image(output_path, _convert_frame(raw, frame_bounds, calibration))
+        frame = _convert_frame(raw, frame_bounds, calibration)
+        write_image(output_path, _trim_35mm_frame(frame))
         written.append(output_path)
     return written
