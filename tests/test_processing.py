@@ -11,7 +11,7 @@ from scanner_utils.processing.negatives import (
     detect_frame_bounds,
     negative_to_positive,
 )
-from scanner_utils.processing.photos import process_photo_scan
+from scanner_utils.processing.photos import _trim_white_scanner_border, process_photo_scan
 
 
 def test_detects_multiple_photos_and_deskews() -> None:
@@ -26,6 +26,79 @@ def test_detects_multiple_photos_and_deskews() -> None:
     assert len(regions) == 2
     crops = [perspective_crop(image, region.corners) for region in regions]
     assert all(crop.shape[0] > 200 and crop.shape[1] > 300 for crop in crops)
+
+
+def test_detects_four_edge_touching_photos_separated_by_white_gutters() -> None:
+    image = np.full((800, 1000, 3), 65000, dtype=np.uint16)
+    image[:360, :440] = (9000, 12000, 15000)
+    image[:360, 560:] = (18000, 9000, 12000)
+    image[440:, :440] = (8000, 18000, 10000)
+    image[440:, 560:] = (12000, 10000, 20000)
+
+    # A light subject reaches both sides of the first print and splits its dark
+    # content into separate contours, as on the real-world regression scan.
+    cv2.line(image, (-40, 290), (480, 70), (65000, 65000, 65000), thickness=55)
+
+    regions = detect_rectangular_regions(image)
+
+    assert len(regions) == 4
+    centers = [region.corners.mean(axis=0) for region in regions]
+    assert centers[0][0] < 250 and centers[0][1] < 220
+    assert centers[1][0] > 750 and centers[1][1] < 220
+    assert centers[2][0] < 250 and centers[2][1] > 580
+    assert centers[3][0] > 750 and centers[3][1] > 580
+    crops = [perspective_crop(image, region.corners) for region in regions]
+    for crop in crops:
+        border = np.concatenate([crop[0], crop[-1], crop[:, 0], crop[:, -1]])
+        assert np.median(border) < 30000
+
+
+def test_detects_two_diagonal_photos_without_extending_them_across_the_bed() -> None:
+    image = np.full((800, 1000, 3), 65000, dtype=np.uint16)
+    image[30:470, 30:450] = (9000, 14000, 18000)
+    image[330:770, 550:970] = (18000, 12000, 8000)
+
+    regions = detect_rectangular_regions(image)
+    crops = [perspective_crop(image, region.corners) for region in regions]
+
+    assert len(regions) == 2
+    assert all(400 < crop.shape[0] < 460 for crop in crops)
+    assert all(400 < crop.shape[1] < 440 for crop in crops)
+
+
+def test_detects_one_photo_once_on_a_white_bed() -> None:
+    image = np.full((800, 1000, 3), 65000, dtype=np.uint16)
+    image[120:680, 260:740] = (8000, 12000, 18000)
+    cv2.line(image, (240, 540), (760, 260), (65000, 65000, 65000), thickness=45)
+
+    regions = detect_rectangular_regions(image)
+
+    assert len(regions) == 1
+    crop = perspective_crop(image, regions[0].corners)
+    assert 520 < crop.shape[0] < 580
+    assert 450 < crop.shape[1] < 500
+
+
+def test_trims_only_thin_white_scanner_wedges() -> None:
+    image = np.full((400, 600, 3), (12000, 18000, 24000), dtype=np.uint16)
+    for row in range(8):
+        image[row, : 500 - row * 20] = 65535
+    for column in range(8):
+        image[:, column] = 65535
+
+    trimmed = _trim_white_scanner_border(image)
+
+    assert trimmed.shape == (392, 592, 3)
+    assert np.all(trimmed[0, 0] == (12000, 18000, 24000))
+
+
+def test_keeps_bright_photo_content_that_does_not_clear_near_edge() -> None:
+    image = np.full((400, 600, 3), (12000, 18000, 24000), dtype=np.uint16)
+    image[:80] = 65535
+
+    trimmed = _trim_white_scanner_border(image)
+
+    assert trimmed is image
 
 
 def test_photo_pipeline_preserves_16_bit_output(tmp_path: Path) -> None:
@@ -71,8 +144,7 @@ def test_detects_vertical_frames_from_raw_film_edges() -> None:
         raw[max(0, boundary - 2) : boundary + 2, 55:205] = 62000
     rng = np.random.default_rng(42)
     raw[112:808, 57:203] = np.clip(
-        raw[112:808, 57:203].astype(np.int32)
-        + rng.integers(-8000, 8000, size=(696, 146, 3)),
+        raw[112:808, 57:203].astype(np.int32) + rng.integers(-8000, 8000, size=(696, 146, 3)),
         0,
         65535,
     ).astype(np.uint16)
